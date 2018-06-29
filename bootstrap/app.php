@@ -12,17 +12,21 @@ $app = new Slim\App([
     'settings' => [
         'displayErrorDetails' => getenv('APP_DEBUG') === 'true',
 
+        'determineRouteBeforeAppMiddleware' => getenv('DETERMINE_ROUTE_BEFORE_APP_MIDDLEWARE') === 'true',
+
         'app' => [
             'name' => getenv('APP_NAME'),
             'version' => getenv('APP_VERSION')
         ],
 
+        'datetimeFormat' => 'Y-m-d H:i:s',
+
+        'timezone' => 'Asia/Ho_Chi_Minh',
+
         'views' => [
             'cache' => getenv('VIEW_CACHE_DISABLED') === 'true' ? false : __DIR__ . '/../storage/views',
             'compress' => getenv('VIEW_COMPRESS_ENABLED') === 'true' ? true : false
         ],
-
-        'flashEnabled' => getenv('FLASH_MESSAGE_ENABLED') === 'true' ? true : false,
 
         'logger' => [
             'enabled' => getenv('LOGGER_ENABLED') === 'true' ? true : false,
@@ -31,31 +35,45 @@ $app = new Slim\App([
         ],
 
         'customHandleErrorEnabled' => getenv('CUSTOM_HANDLE_ERROR_ENABLED') === 'true' ? true : false
-    ],
+    ]
 ]);
 
 $container = $app->getContainer();
 
-if ( $container->settings['logger']['enabled'] ) {
-    $container['logger'] = function($container) {
-        $logger = new \Monolog\Logger(
-            $container->settings['logger']['logName']
-        );
+$container['logger'] = function($container) {
+    $logger = new \Monolog\Logger(
+        $container->settings['logger']['logName']
+    );
+
+    if ( $container->settings['logger']['enabled'] ) {
         $file_handler = new \Monolog\Handler\StreamHandler(
             $container->settings['logger']['logDir']
         );
         $logger->pushHandler($file_handler);
+    }
 
-        return $logger;
-    };
-}
+    return $logger;
+};
 
-if ( $container->settings['flashEnabled'] ) {
-    $container['flash'] = function ($c) {
-        session_start();
-        return new \Slim\Flash\Messages();
-    };
-}
+$container['flash'] = function ($c) {
+    session_start();
+    return new \Slim\Flash\Messages();
+};
+
+$container['view'] = function ($container) {
+    $view = new \Slim\Views\Twig(__DIR__ . '/../resources/views', [
+        'cache' => $container->settings['views']['cache']
+    ]);
+
+    $basePath = rtrim(str_ireplace('index.php', '', $container['request']->getUri()->getBasePath()), '/');
+    $view->addExtension(new Slim\Views\TwigExtension($container['router'], $basePath));
+
+    if ( $container->settings['views']['compress'] ) {
+        $view->addExtension(new \nochso\HtmlCompressTwig\Extension());
+    }
+
+    return $view;
+};
 
 if ( $container->settings['customHandleErrorEnabled'] ) {
     $container['notFoundHandler'] = function ($container) {
@@ -90,20 +108,5 @@ if ( $container->settings['customHandleErrorEnabled'] ) {
         };
     };
 }
-
-$container['view'] = function ($container) {
-    $view = new \Slim\Views\Twig(__DIR__ . '/../resources/views', [
-        'cache' => $container->settings['views']['cache']
-    ]);
-
-    $basePath = rtrim(str_ireplace('index.php', '', $container['request']->getUri()->getBasePath()), '/');
-    $view->addExtension(new Slim\Views\TwigExtension($container['router'], $basePath));
-
-    if ( $container->settings['views']['compress'] ) {
-        $view->addExtension(new \nochso\HtmlCompressTwig\Extension());
-    }
-
-    return $view;
-};
 
 require_once __DIR__ . '/../routes/web.php';
