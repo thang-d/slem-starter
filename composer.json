@@ -1,6 +1,6 @@
 {
     "name": "j1nz/slem-stater",
-    "description": "A template starter structure for Slim 3.x",
+    "description": "A template starter structure for Slim Framework",
     "keywords": ["template", "slim", "boilerplate"],
     "license": "MIT",
     "type": "project",

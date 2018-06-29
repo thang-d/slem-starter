@@ -1,5 +1,5 @@
 # slem-stater
-A template starter structure for Slim 3.x
+A template starter structure for Slim Framework (php)
 
 ## Installation
 
