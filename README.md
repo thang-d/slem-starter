@@ -14,6 +14,5 @@ The simplest boilerplate for getting started on a new Slim adventure.
 You may quickly test this using the built-in PHP server:
 ```bash
 $ cd myproject
-$ composer install
 $ php -S localhost:8080 -t public index.php
 ```
