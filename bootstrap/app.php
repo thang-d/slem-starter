@@ -19,6 +19,14 @@ $app = new Slim\App([
             'version' => getenv('APP_VERSION')
         ],
 
+        'database' => [
+            'name' => getenv('DB_NAME'),
+            'host' => getenv('DB_HOST'),
+            'port' => getenv('DB_PORT'),
+            'username' => getenv('DB_USERNAME'),
+            'password' => getenv('DB_PASSWORD')
+        ],
+
         'datetimeFormat' => 'Y-m-d H:i:s',
 
         'timezone' => 'Asia/Ho_Chi_Minh',
@@ -34,7 +42,8 @@ $app = new Slim\App([
             'logName' => getenv('LOGGER_NAME') !== '' ? getenv('LOGGER_NAME') : 'FromSystem'
         ],
 
-        'customHandleErrorEnabled' => getenv('CUSTOM_HANDLE_ERROR_ENABLED') === 'true' ? true : false
+        'canCustomHandleError' => getenv('CAN_CUSTOM_HANDLE_ERROR') === 'true' ? true : false,
+        'canUseDatabase' => getenv('CAN_USE_DATABASE')
     ]
 ]);
 
@@ -75,7 +84,25 @@ $container['view'] = function ($container) {
     return $view;
 };
 
-if ( $container->settings['customHandleErrorEnabled'] ) {
+/*$container['php_view'] = function($c) {
+    return new \Slim\Views\PhpRenderer(__DIR__ . '/../resources/views');
+};*/
+
+if ($container->settings['canUseDatabase']) {
+    $container['db'] = function ($container) {
+        $db = $container->settings['database'];
+        $pdo = new \PDO(
+            "mysql:host=" . $db['host'] . ";dbname=" . $db['name'],
+            $db['username'],
+            $db['password']
+        );
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
+        return $pdo;
+    };
+}
+
+if ($container->settings['canCustomHandleError']) {
     $container['notFoundHandler'] = function ($container) {
         return function ($request, $response) use ($container) {
             return $container->get('response')->withStatus(404);
