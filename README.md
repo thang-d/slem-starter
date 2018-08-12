@@ -9,6 +9,9 @@ A template starter structure for Slim Framework (php)
 
 The simplest boilerplate for getting started on a new Slim adventure. 
 
+## How to configure template
+Open .env in root myproject and edit it
+
 ## Usage
 
 You may quickly test this using the built-in PHP server:
