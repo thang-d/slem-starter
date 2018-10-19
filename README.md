@@ -3,7 +3,7 @@ A template starter structure for Slim Framework (php)
 
 ## Installation
 
-`composer create-project j1nz/slem-stater myproject`
+`composer create-project lovecoding/slem-stater myproject`
 
 ## What's this all about then?
 
