@@ -1,9 +1,9 @@
-# slem-stater
+# slem-starter
 A template starter structure for Slim Framework (php)
 
 ## Installation
 
-`composer create-project lovecoding/slem-stater myproject`
+`composer create-project lovecoding/slem-starter myproject`
 
 ## What's this all about then?
 
