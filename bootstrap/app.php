@@ -1,139 +1,124 @@
 <?php
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 try {
     (new Dotenv\Dotenv(__DIR__ . '/../'))->load();
 } catch (Dotenv\Exception\InvalidPathException $e) {
-    //
+    // Auto catch error by Slim framework
 }
 
 $app = new Slim\App([
     'settings' => [
-        'displayErrorDetails' => getenv('APP_DEBUG') === 'true',
-
-        'determineRouteBeforeAppMiddleware' => getenv('DETERMINE_ROUTE_BEFORE_APP_MIDDLEWARE') === 'true',
-
         'app' => [
             'name' => getenv('APP_NAME'),
             'version' => getenv('APP_VERSION')
         ],
-
-        'database' => [
-            'name' => getenv('DB_NAME'),
-            'host' => getenv('DB_HOST'),
-            'port' => getenv('DB_PORT'),
-            'username' => getenv('DB_USERNAME'),
-            'password' => getenv('DB_PASSWORD')
-        ],
-
-        'datetimeFormat' => 'Y-m-d H:i:s',
-
-        'timezone' => 'Asia/Ho_Chi_Minh',
-
-        'views' => [
-            'cache' => getenv('VIEW_CACHE_DISABLED') === 'true' ? false : __DIR__ . '/../storage/views',
-            'compress' => getenv('VIEW_COMPRESS_ENABLED') === 'true' ? true : false
-        ],
-
-        'logger' => [
-            'enabled' => getenv('LOGGER_ENABLED') === 'true' ? true : false,
-            'logDir' => getenv('LOGGER_DIR') !== '' ? getenv('LOGGER_DIR') : __DIR__ . '/../storage/log/app.log',
-            'logName' => getenv('LOGGER_NAME') !== '' ? getenv('LOGGER_NAME') : 'FromSystem'
-        ],
-
-        'canCustomHandleError' => getenv('CAN_CUSTOM_HANDLE_ERROR') === 'true' ? true : false,
-        'canUseDatabase' => getenv('CAN_USE_DATABASE')
+        'displayErrorDetails' => getenv('APP_DEBUG') === 'true',
+        'determineRouteBeforeAppMiddleware' => getenv('DETERMINE_ROUTE_BEFORE_APP_MIDDLEWARE') === 'true',
+        'hasCustomHandleError' =>  getenv('HAS_CUSTOM_HANDLE_ERROR') === 'true',
+        'useDatabase' => getenv('USE_DATABASE') === 'true',
+        'services' => [
+            'datetimeFormat' => getenv('DATETIME_FORMAT'),
+            'timezone' => getenv('TIMEZONE'),
+            'db' => [
+                'driver' => getenv('DB_DRIVER'),
+                // If you're using phinx, please mapping name database with it
+                // Config database name of phinx in phinx.yml
+                'database' => getenv('DB_NAME'),
+                'host' => getenv('DB_HOST'),
+                'port' => getenv('DB_PORT'),
+                'username' => getenv('DB_USERNAME'),
+                'password' => getenv('DB_PASSWORD'),
+                'charset'   => getenv('DB_CHARSET'),
+                'collation' => getenv('DB_COLLATION'),
+                'prefix'    => getenv('DB_PREFIX_TABLE'),
+            ],
+            'http' => [
+                'proxy' => [
+                    'enabled' => false,
+                    'host' => '',
+                    'port' => '',
+                    'username' => '',
+                    'password' => ''
+                ],
+                'timeout' => 30
+            ],
+            'logger' => [
+                'enabled' => getenv('LOGGER_ENABLED') === 'true',
+                'logPath' => getenv('LOGGER_PATH') !== '' ? getenv('LOGGER_PATH') : __DIR__ . '/../storage/logs/app.log',
+                'logName' => getenv('LOGGER_NAME') !== '' ? getenv('LOGGER_NAME') : 'FromSystem'
+            ]
+        ]
     ]
 ]);
 
 $container = $app->getContainer();
 
-$container['logger'] = function($container) {
-    $logger = new \Monolog\Logger(
-        $container->settings['logger']['logName']
-    );
-
-    if ( $container->settings['logger']['enabled'] ) {
-        $file_handler = new \Monolog\Handler\StreamHandler(
-            $container->settings['logger']['logDir']
-        );
-        $logger->pushHandler($file_handler);
-    }
-
-    return $logger;
-};
-
-$container['flash'] = function ($c) {
-    session_start();
-    return new \Slim\Flash\Messages();
-};
-
-$container['view'] = function ($container) {
-    $view = new \Slim\Views\Twig(__DIR__ . '/../resources/views', [
-        'cache' => $container->settings['views']['cache']
-    ]);
-
-    $basePath = rtrim(str_ireplace('index.php', '', $container['request']->getUri()->getBasePath()), '/');
-    $view->addExtension(new Slim\Views\TwigExtension($container['router'], $basePath));
-
-    if ( $container->settings['views']['compress'] ) {
-        $view->addExtension(new \nochso\HtmlCompressTwig\Extension());
-    }
-
-    return $view;
-};
-
-/*$container['php_view'] = function($c) {
-    return new \Slim\Views\PhpRenderer(__DIR__ . '/../resources/views');
-};*/
-
-if ($container->settings['canUseDatabase']) {
-    $container['db'] = function ($container) {
-        $db = $container->settings['database'];
-        $pdo = new \PDO(
-            "mysql:host=" . $db['host'] . ";dbname=" . $db['name'],
-            $db['username'],
-            $db['password']
-        );
-        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
-        return $pdo;
-    };
-}
-
-if ($container->settings['canCustomHandleError']) {
-    $container['notFoundHandler'] = function ($container) {
-        return function ($request, $response) use ($container) {
-            return $container->get('response')->withStatus(404);
+if ($container->settings['hasCustomHandleError'])
+{
+    $container['notFoundHandler'] = function ($c) {
+        return function ($request, $response) use ($c) {
+            return $c->get('response')->withStatus(404);
         };
     };
 
-    $container['notAllowedHandler'] = function ($container) {
-        return function ($request, $response, $methods) use ($container) {
-            return $container->get('response')
+    $container['notAllowedHandler'] = function ($c) {
+        return function ($request, $response, $methods) use ($c) {
+            return $c->get('response')
                 ->withStatus(405)
                 ->withHeader('Allow', implode(', ', $methods));
         };
     };
 
-    $container['errorHandler'] = function ($container) {
-        return function ($request, $response, $exception) use ($container) {
+    $container['errorHandler'] = function ($c) {
+        return function ($request, $response, $exception) use ($c) {
             $statusCode = $exception->getCode();
 
             if ($exception->getCode() === 0) {
                 $statusCode = 500;
             }
-            return $container->get('response')
+            return $c->get('response')
                     ->withStatus($statusCode);
         };
     };
 
-    $container['phpErrorHandler'] = function ($container) {
-        return function ($request, $response, $error) use ($container) {
-            return $container->get('response')->withStatus(500);
+    $container['phpErrorHandler'] = function ($c) {
+        return function ($request, $response, $error) use ($c) {
+            return $c->get('response')->withStatus(500);
         };
     };
 }
 
-require_once __DIR__ . '/../routes/web.php';
+$container['logger'] = function($c)
+{
+    $loggerCfg = $c->settings->services['logger'];
+
+    $logger = new \Monolog\Logger($loggerCfg['logName']);
+
+    if ( $loggerCfg['enabled'] ) {
+        $fileHandler = new \Monolog\Handler\StreamHandler($loggerCfg['logPath']);
+        $logger->pushHandler($fileHandler);
+    }
+
+    return $logger;
+};
+
+$container['cacheProvider'] = function()
+{
+    return new \Slim\HttpCache\CacheProvider();
+};
+
+if ($container['settings']['useDatabase']) {
+    $capsule = new \Illuminate\Database\Capsule\Manager;
+    $capsule->addConnection($container->settings['services']['db']);
+
+    $capsule->setEventDispatcher(
+        new \Illuminate\Events\Dispatcher(new \Illuminate\Container\Container)
+    );
+
+    $capsule->setAsGlobal();
+    $capsule->bootEloquent();
+}
+
+require __DIR__ . '/../routes/web.php';
