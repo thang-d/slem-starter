@@ -1,17 +1,16 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controller;
 
-use App\Controllers\Controller;
-use App\Interfaces\IController;
+use App\Interfaces\IGroupController;
 use Psr\Http\Message\{
     ServerRequestInterface as Request,
     ResponseInterface as Response
 };
 
-class GroupController extends Controller implements IController
+class DemoController extends Controller implements IGroupController
 {
-    public function groupRoute($app)
+    public function routes($app)
     {
         $app->get('/group1', self::class .':group1');
         $app->get('/group2', self::class .':group2');
@@ -22,7 +21,7 @@ class GroupController extends Controller implements IController
         return $response->getBody()->write('Hello group 1');
     }
 
-    public function group2(Request $request, Response $response)
+    public function group2(Request $request, Response $response, array $args)
     {
         return $response->getBody()->write('Hello group 2');
     }

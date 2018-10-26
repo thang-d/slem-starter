@@ -1,10 +1,12 @@
 <?php
 namespace App\Middleware;
 
-class Middleware {
+class Middleware
+{
     protected $c;
 
-    public function __construct($container) {
+    public function __construct($container)
+    {
         $this->c = $container;
     }
 }

@@ -1,8 +1,16 @@
 <?php
 
-use App\Controllers\HomeController;
-use App\Controllers\GroupController;
+$app->get('/', \App\Controller\HomeController::class . ':home');
 
-$app->get('/', HomeController::class . ':index')->setName('home.index');
+$app->group('/demo', \App\Controller\DemoController::class .':routes');
 
-$app->group('/group', GroupController::class .':groupRoute');
+// Using cached before send resposne
+$app->add(new \Slim\HttpCache\Cache('public', 3600));
+
+// CROS
+$app->add(
+    function($request, $response, $next) {
+        $response = $response->withHeader('Access-Control-Allow-Origin', '*');
+        return $next($request, $response);
+    }
+);
