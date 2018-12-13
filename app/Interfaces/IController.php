@@ -3,4 +3,5 @@ namespace App\Interfaces;
 
 interface IController
 {
+    
 }

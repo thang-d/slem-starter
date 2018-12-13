@@ -1,5 +1,5 @@
 <?php
-namespace App\Controller;
+namespace App\Controllers;
 
 use App\Interfaces\IController;
 use Psr\Http\Message\{

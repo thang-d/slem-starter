@@ -1,6 +1,5 @@
 <?php
-
-namespace App\Controller;
+namespace App\Controllers;
 
 use App\Interfaces\IGroupController;
 use Psr\Http\Message\{

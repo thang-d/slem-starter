@@ -1,7 +1,8 @@
 <?php
 namespace App\Utils;
 
-class Constants {
+class Constants
+{
     // demo variable
-    public static $APP_NAME = 'appName';
+    const APP_NAME = 'appName';
 }
