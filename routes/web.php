@@ -8,9 +8,7 @@ $app->group('/demo', \App\Controller\DemoController::class .':routes');
 $app->add(new \Slim\HttpCache\Cache('public', 3600));
 
 // CROS
-$app->add(
-    function($request, $response, $next) {
-        $response = $response->withHeader('Access-Control-Allow-Origin', '*');
-        return $next($request, $response);
-    }
-);
+$app->add(function ($request, $response, $next) {
+    $response = $response->withHeader('Access-Control-Allow-Origin', '*');
+    return $next($request, $response);
+});

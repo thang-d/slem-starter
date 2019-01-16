@@ -10,6 +10,7 @@ try {
 
 $app = new Slim\App([
     'settings' => [
+        'isDevelopment' => getenv('APP_DEBUG') === 'true',
         'app' => [
             'name' => getenv('APP_NAME'),
             'version' => getenv('APP_VERSION')
@@ -55,43 +56,50 @@ $app = new Slim\App([
 
 $container = $app->getContainer();
 
-if ($container->settings['hasCustomHandleError'])
-{
-    $container['notFoundHandler'] = function ($c) {
-        return function ($request, $response) use ($c) {
-            return $c->get('response')->withStatus(404);
+if ($container->settings['hasCustomHandleError']) {
+    $container['notFoundHandler'] = function () {
+        return function ($request, $response) {
+            return $response->withStatus(404);
         };
     };
 
-    $container['notAllowedHandler'] = function ($c) {
-        return function ($request, $response, $methods) use ($c) {
-            return $c->get('response')
-                ->withStatus(405)
-                ->withHeader('Allow', implode(', ', $methods));
+    $container['notAllowedHandler'] = function () {
+        return function ($request, $response, $methods) {
+            return $response->withStatus(405)->withHeader('Allow', implode(', ', $methods));
         };
     };
 
-    $container['errorHandler'] = function ($c) {
-        return function ($request, $response, $exception) use ($c) {
+    $container['errorHandler'] = function () {
+        return function ($request, $response, $exception) {
             $statusCode = $exception->getCode();
 
             if ($exception->getCode() === 0) {
                 $statusCode = 500;
             }
-            return $c->get('response')
-                    ->withStatus($statusCode);
+            return $response->withStatus($statusCode);
         };
     };
 
-    $container['phpErrorHandler'] = function ($c) {
-        return function ($request, $response, $error) use ($c) {
-            return $c->get('response')->withStatus(500);
+    $container['phpErrorHandler'] = function () {
+        return function ($request, $response, $error) {
+            return $response->withStatus(500);
         };
     };
 }
 
-$container['logger'] = function($c)
-{
+if ($container->settings['useDatabase']) {
+    $capsule = new \Illuminate\Database\Capsule\Manager;
+    $capsule->addConnection($container->settings['services']['db']);
+
+    $capsule->setEventDispatcher(
+        new \Illuminate\Events\Dispatcher(new \Illuminate\Container\Container)
+    );
+
+    $capsule->setAsGlobal();
+    $capsule->bootEloquent();
+}
+
+$container['logger'] = function ($c) {
     $loggerCfg = $c->settings->services['logger'];
 
     $logger = new \Monolog\Logger($loggerCfg['logName']);
@@ -104,21 +112,8 @@ $container['logger'] = function($c)
     return $logger;
 };
 
-$container['cacheProvider'] = function()
-{
+$container['cacheProvider'] = function () {
     return new \Slim\HttpCache\CacheProvider();
 };
-
-if ($container['settings']['useDatabase']) {
-    $capsule = new \Illuminate\Database\Capsule\Manager;
-    $capsule->addConnection($container->settings['services']['db']);
-
-    $capsule->setEventDispatcher(
-        new \Illuminate\Events\Dispatcher(new \Illuminate\Container\Container)
-    );
-
-    $capsule->setAsGlobal();
-    $capsule->bootEloquent();
-}
 
 require __DIR__ . '/../routes/web.php';
